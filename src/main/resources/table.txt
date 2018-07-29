@@ -1,0 +1,5 @@
+CREATE TABLE record(
+  recordID IDENTITY,
+  postDate TIMESTAMP,
+  postText VARCHAR(512)
+)

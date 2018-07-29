@@ -1,42 +1,43 @@
 package com.jcourse.vlsnk;
 
 import java.sql.*;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
 public class GuestBookControllerImpl implements GuestBookController {
 
-    private Connection connection;
-    private int i = 0;
     private String url = "jdbc:h2:mem:post;DB_CLOSE_DELAY=-1";
     private String user = "user";
     private String password = "password";
-    private String createTable = "CREATE TABLE PUBLIC.record(\n" +
-            "  recordId INT AUTO_INCREMENT,\n" +
+    private static final String CREATE_TABLE = "CREATE TABLE record(\n" +
+            "  recordId IDENTITY ,\n" +
             "  postDate TIMESTAMP,\n" +
-            "  postText VARCHAR(512)\n" +
+            "  postText VARCHAR\n" +
             ");";
+    private final static String INSERT_INTO_TABLE = "INSERT  INTO record (POSTDATE, POSTTEXT) VALUES (?, ?)";
+    private final static String SELECT_FROM_TABLE = "SELECT * FROM record";
 
     public GuestBookControllerImpl()  {
         try {
             Class.forName("org.h2.Driver");
-            this.connection = DriverManager.getConnection(url, user, password);
-            try (PreparedStatement statement = connection.prepareStatement(createTable)) {
+            try(Connection connection = DriverManager.getConnection(url, user, password);
+                PreparedStatement statement = connection.prepareStatement(CREATE_TABLE)) {
                 statement.execute();
             } catch (SQLException e) {
                 e.printStackTrace();
             }
-        }  catch (Exception e) {
+        } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
     }
 
     public void addRecord(String message) {
 
-        try (PreparedStatement statement = connection.prepareStatement("INSERT  INTO PUBLIC.RECORD (RECORDID, POSTDATE, POSTTEXT) VALUES (?, ?, ?)")){
-            statement.setInt(1, i++);
-            statement.setTimestamp(2, new Timestamp(System.currentTimeMillis()));
-            statement.setString(3, message);
+        try (Connection connection = DriverManager.getConnection(url, user, password);
+             PreparedStatement statement = connection.prepareStatement(INSERT_INTO_TABLE)){
+            statement.setTimestamp(1, Timestamp.from(Instant.now()));
+            statement.setString(2, message);
             statement.execute();
         } catch (SQLException e) {
             e.printStackTrace();
@@ -45,8 +46,9 @@ public class GuestBookControllerImpl implements GuestBookController {
 
     public List<Record> getRecords() {
         List<Record> recordList = new ArrayList<>();
-        try(Statement statement = connection.createStatement()){
-            statement.executeQuery("select * from PUBLIC.record");
+        try(Connection connection = DriverManager.getConnection(url, user, password);
+            Statement statement = connection.createStatement()){
+            statement.executeQuery(SELECT_FROM_TABLE);
             ResultSet msgSet = statement.getResultSet();
             while (msgSet.next()) {
                 Record r = new Record(msgSet.getInt(1),
